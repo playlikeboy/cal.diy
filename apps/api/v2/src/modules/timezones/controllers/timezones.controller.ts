@@ -7,8 +7,8 @@ import type { CityTimezones } from "@calcom/platform-libraries";
 import { ApiResponse } from "@calcom/platform-types";
 
 @Controller({
-  path: "timezones",
-  version: "2",
+  path: "/v2/timezones",
+  version: "2024-04-15",
 })
 @DocsTags("Timezones")
 export class TimezonesController {
