@@ -1,4 +1,4 @@
-import { createSelfServePhoneCall } from "@calcom/features/ee/cal-ai-phone/retellAIService";
+import { createDefaultAIPhoneServiceProvider } from "@calcom/features/ee/cal-ai-phone";
 import { checkRateLimitAndThrowError } from "@calcom/lib/checkRateLimitAndThrowError";
 
 import { TRPCError } from "@trpc/server";
@@ -33,8 +33,17 @@ export const handleCreateSelfServePhoneCall = async ({
     });
   }
 
+  // Use the provider-agnostic AI service
+  const aiService = createDefaultAIPhoneServiceProvider();
+
   const fromNumber = config.yourPhoneNumber.phoneNumber;
-  const call = await createSelfServePhoneCall(fromNumber, numberToCall);
+  const call = await aiService.createPhoneCall({
+    fromNumber,
+    toNumber: numberToCall,
+    dynamicVariables: {
+      // Add any dynamic variables if needed
+    },
+  });
 
   return call;
 };
