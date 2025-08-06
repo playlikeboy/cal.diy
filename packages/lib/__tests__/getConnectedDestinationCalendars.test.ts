@@ -2,8 +2,8 @@ import prismaMock from "../../../tests/libs/__mocks__/prismaMock";
 
 import { describe, expect, test, vi, beforeEach } from "vitest";
 
-import { cleanupOrphanedSelectedCalendars } from "../getConnectedDestinationCalendars";
-import type { UserWithCalendars } from "../getConnectedDestinationCalendars";
+import { cleanupOrphanedSelectedCalendars } from "../calendar/cleanupOrphanedSelectedCalendars";
+import type { UserWithCalendars } from "../calendar/cleanupOrphanedSelectedCalendars";
 
 vi.mock("../server/repository/selectedCalendar", () => ({
   SelectedCalendarRepository: {
