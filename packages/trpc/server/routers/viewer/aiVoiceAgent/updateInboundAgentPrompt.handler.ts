@@ -24,7 +24,6 @@ export const updateInboundAgentPromptHandler = async ({
 
     const aiService = createDefaultAIPhoneServiceProvider();
 
-    // Get current agent details to access the prompt
     const agentDetails = await aiService.getAgentWithDetails({
       id: agentId,
       userId,
@@ -41,7 +40,6 @@ export const updateInboundAgentPromptHandler = async ({
       .replace(/check_availability_\{\{eventTypeId\}\}/g, `check_availability_${eventTypeId}`)
       .replace(/book_appointment_\{\{eventTypeId\}\}/g, `book_appointment_${eventTypeId}`);
 
-    // Update tools and prompt using existing updateAgentConfiguration method
     await aiService.updateToolsFromAgentId(agentDetails.retellData.agentId, {
       eventTypeId,
       timeZone: userTimeZone,
@@ -53,11 +51,6 @@ export const updateInboundAgentPromptHandler = async ({
       id: agentId,
       userId,
       generalPrompt: updatedPrompt,
-    });
-
-    log.info("Inbound agent prompt updated", {
-      agentId,
-      eventTypeId,
     });
 
     return {
