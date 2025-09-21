@@ -9,9 +9,9 @@ import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { WatchlistType } from "@calcom/prisma/enums";
 import { trpc } from "@calcom/trpc/react";
 import { Button } from "@calcom/ui/components/button";
-import { Dialog, DialogContent, DialogFooter } from "@calcom/ui/components/dialog";
 import { Form, InputField, TextAreaField } from "@calcom/ui/components/form";
-import { RadioGroup } from "@calcom/ui/components/radio";
+import { RadioGroup, RadioField } from "@calcom/ui/components/radio";
+import { Sheet, SheetContent, SheetFooter, SheetHeader } from "@calcom/ui/components/sheet";
 import { showToast } from "@calcom/ui/components/toast";
 
 const addSpamEntrySchema = z.object({
@@ -22,19 +22,19 @@ const addSpamEntrySchema = z.object({
 
 type AddSpamEntryFormData = z.infer<typeof addSpamEntrySchema>;
 
-interface AddSpamBlocklistDialogProps {
+interface AddSpamBlocklistSheetProps {
   organizationId: number;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function AddSpamBlocklistDialog({
+export default function AddSpamBlocklistSheet({
   organizationId,
   isOpen,
   onClose,
   onSuccess,
-}: AddSpamBlocklistDialogProps) {
+}: AddSpamBlocklistSheetProps) {
   const { t } = useLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -70,30 +70,50 @@ export default function AddSpamBlocklistDialog({
   const watchedType = form.watch("type");
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent title={t("add_spam_entry")} className="sm:max-w-md">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent>
+        <SheetHeader>
+          <h2 className="text-emphasis text-lg font-semibold leading-6">{t("add_spam_entry")}</h2>
+          <p className="text-subtle text-sm">{t("add_spam_entry_description")}</p>
+        </SheetHeader>
+
         <Form form={form} handleSubmit={onSubmit}>
-          <div className="space-y-4">
+          <div className="space-y-6 py-6">
             <Controller
               name="type"
               control={form.control}
               render={({ field }) => (
-                <RadioGroup
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  options={[
-                    {
-                      value: WatchlistType.EMAIL,
-                      label: t("email_address"),
-                      description: t("block_specific_email"),
-                    },
-                    {
-                      value: WatchlistType.DOMAIN,
-                      label: t("domain"),
-                      description: t("block_entire_domain"),
-                    },
-                  ]}
-                />
+                <div>
+                  <label className="text-emphasis mb-3 block text-sm font-medium">{t("type")}</label>
+                  <RadioGroup value={field.value} onValueChange={field.onChange}>
+                    <div className="space-y-3">
+                      <RadioField
+                        id="email"
+                        value={WatchlistType.EMAIL}
+                        label={
+                          <div>
+                            <div className="font-medium">{t("email_address")}</div>
+                            <div className="text-subtle text-sm">
+                              Block a specific email address (e.g., spam@example.com)
+                            </div>
+                          </div>
+                        }
+                      />
+                      <RadioField
+                        id="domain"
+                        value={WatchlistType.DOMAIN}
+                        label={
+                          <div>
+                            <div className="font-medium">{t("domain")}</div>
+                            <div className="text-subtle text-sm">
+                              Block an entire domain (e.g., @spam-site.com)
+                            </div>
+                          </div>
+                        }
+                      />
+                    </div>
+                  </RadioGroup>
+                </div>
               )}
             />
 
@@ -112,16 +132,16 @@ export default function AddSpamBlocklistDialog({
             />
           </div>
 
-          <DialogFooter>
+          <SheetFooter>
             <Button type="button" color="secondary" onClick={onClose}>
               {t("cancel")}
             </Button>
             <Button type="submit" loading={isSubmitting}>
               {t("add_spam_entry")}
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
