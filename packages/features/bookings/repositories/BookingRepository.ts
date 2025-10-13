@@ -246,7 +246,7 @@ export class BookingRepository {
     });
   }
 
-  async findByIdIncludeReport({ bookingUid }: { bookingUid: string }) {
+  async findByUidIncludeReport({ bookingUid }: { bookingUid: string }) {
     return await this.prismaClient.booking.findUnique({
       where: {
         uid: bookingUid,
