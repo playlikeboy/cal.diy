@@ -37,23 +37,6 @@ export default defineContentScript({
 
     sidebarContainer.appendChild(iframe);
 
-    // Add SVG filter definition to document
-    const svgFilter = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svgFilter.style.display = 'none';
-    svgFilter.innerHTML = `
-        <filter id="displacementFilter">
-            <feTurbulence type="turbulence" 
-                baseFrequency="0.01" 
-                numOctaves="2" 
-                result="turbulence" />
-    
-            <feDisplacementMap in="SourceGraphic"
-                in2="turbulence"    
-                            scale="200" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-    `;
-    document.body.appendChild(svgFilter);
-
     // Create floating buttons container
     const buttonsContainer = document.createElement('div');
     buttonsContainer.id = 'cal-companion-buttons';
@@ -75,34 +58,32 @@ export default defineContentScript({
     toggleButton.style.borderRadius = '50%';
     toggleButton.style.border = 'none';
     toggleButton.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    toggleButton.style.backdropFilter = 'brightness(1.1) blur(2px) url(#displacementFilter)';
-    toggleButton.style.filter = 'drop-shadow(-8px -10px 46px #0000005f)';
-    toggleButton.style.boxShadow = 'inset 6px 6px 3px -7px rgba(255, 255, 255, 0.7), inset 0 0 8px 1px rgba(255, 255, 255, 0.7)';
+    toggleButton.style.backdropFilter = 'blur(10px)';
     toggleButton.style.color = 'white';
     toggleButton.style.cursor = 'pointer';
     toggleButton.style.fontSize = '16px';
+    toggleButton.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
     toggleButton.style.transition = 'all 0.2s ease';
-    toggleButton.style.position = 'relative';
-    toggleButton.style.overflow = 'hidden';
     toggleButton.title = 'Toggle sidebar';
 
     // Create close button
     const closeButton = document.createElement('button');
-    closeButton.innerHTML = '✕';
+    closeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M13 1L1 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1 1L13 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+`;
     closeButton.style.width = '40px';
     closeButton.style.height = '40px';
     closeButton.style.borderRadius = '50%';
     closeButton.style.border = 'none';
     closeButton.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    closeButton.style.backdropFilter = 'brightness(1.1) blur(2px) url(#displacementFilter)';
-    closeButton.style.filter = 'drop-shadow(-8px -10px 46px #0000005f)';
-    closeButton.style.boxShadow = 'inset 6px 6px 3px -7px rgba(255, 255, 255, 0.7), inset 0 0 8px 1px rgba(255, 255, 255, 0.7)';
+    closeButton.style.backdropFilter = 'blur(10px)';
     closeButton.style.color = 'white';
     closeButton.style.cursor = 'pointer';
     closeButton.style.fontSize = '16px';
+    closeButton.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
     closeButton.style.transition = 'all 0.2s ease';
-    closeButton.style.position = 'relative';
-    closeButton.style.overflow = 'hidden';
     closeButton.title = 'Close sidebar';
 
     // Add hover effects
@@ -128,11 +109,17 @@ export default defineContentScript({
       if (isVisible) {
         sidebarContainer.style.transform = 'translateX(0)';
         buttonsContainer.style.right = '420px';
-        toggleButton.innerHTML = '▶';
+        toggleButton.innerHTML = `<svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M1 11L6 6L1 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 11L13 6L8 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
       } else {
         sidebarContainer.style.transform = 'translateX(100%)';
         buttonsContainer.style.right = '20px';
-        toggleButton.innerHTML = '◀';
+        toggleButton.innerHTML = `<svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M13 1L8 6L13 11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M6 1L1 6L6 11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
       }
     });
 
@@ -163,18 +150,27 @@ export default defineContentScript({
           buttonsContainer.style.display = 'flex';
           sidebarContainer.style.transform = 'translateX(0)';
           buttonsContainer.style.right = '420px';
-          toggleButton.innerHTML = '▶';
+          toggleButton.innerHTML = `<svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M1 11L6 6L1 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 11L13 6L8 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
         } else {
           // Toggle visible sidebar
           isVisible = !isVisible;
           if (isVisible) {
             sidebarContainer.style.transform = 'translateX(0)';
             buttonsContainer.style.right = '420px';
-            toggleButton.innerHTML = '▶';
+            toggleButton.innerHTML = `<svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M1 11L6 6L1 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 11L13 6L8 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
           } else {
             sidebarContainer.style.transform = 'translateX(100%)';
             buttonsContainer.style.right = '20px';
-            toggleButton.innerHTML = '◀';
+            toggleButton.innerHTML = `<svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M13 1L8 6L13 11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M6 1L1 6L6 11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
           }
         }
       }
