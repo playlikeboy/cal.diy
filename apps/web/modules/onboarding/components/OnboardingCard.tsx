@@ -13,6 +13,7 @@ type OnboardingCardProps = {
   footer: ReactNode;
   isLoading?: boolean;
   floatingFooter?: boolean;
+  useFitHeight?: boolean;
 };
 
 export const OnboardingCard = ({
@@ -22,6 +23,7 @@ export const OnboardingCard = ({
   footer,
   isLoading,
   floatingFooter = false,
+  useFitHeight = false,
 }: OnboardingCardProps) => {
   const pathname = usePathname();
 
@@ -42,11 +44,11 @@ export const OnboardingCard = ({
   };
 
   return (
-    <div className="relative flex h-full min-h-0 w-full flex-col">
+    <div className={`relative flex w-full flex-col ${useFitHeight ? "h-fit" : "h-full min-h-0"}`}>
       <AnimatePresence mode="wait">
         <motion.div
           key={pathname}
-          className="flex h-full min-h-0 w-full flex-col"
+          className={`flex w-full flex-col ${useFitHeight ? "h-fit" : "h-full min-h-0"}`}
           variants={containerVariants}
           initial="initial"
           animate="animate"
@@ -65,9 +67,9 @@ export const OnboardingCard = ({
 
           {/* Content */}
           <div
-            className={`flex h-full min-h-0 w-full flex-1 flex-col gap-4 [container-type:size] ${
-              floatingFooter ? "pb-10" : ""
-            }`}>
+            className={`flex w-full flex-col gap-4 [container-type:size] ${
+              useFitHeight ? "h-fit" : "h-full min-h-0 flex-1"
+            } ${floatingFooter ? "pb-10" : ""}`}>
             {isLoading ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <SkeletonText className="h-40 w-full" />
