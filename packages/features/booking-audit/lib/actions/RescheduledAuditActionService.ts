@@ -14,6 +14,7 @@ const fieldsSchemaV1 = z.object({
     startTime: StringChangeSchema,
     endTime: StringChangeSchema,
     rescheduledToUid: StringChangeSchema,
+    source: z.enum(["API_V2", "WEBAPP"]),
 });
 
 export class RescheduledAuditActionService

@@ -15,6 +15,7 @@ const fieldsSchemaV1 = z.object({
     startTime: z.number(),
     endTime: z.number(),
     status: z.nativeEnum(BookingStatus),
+    source: z.enum(["API_V2", "WEBAPP"]),
 });
 
 export class CreatedAuditActionService implements IAuditActionService<
