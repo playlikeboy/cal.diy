@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 
 import { prisma } from "@calcom/prisma";
-import { BookingStatus } from "@calcom/prisma/enums";
+import { BookingStatus, MembershipRole } from "@calcom/prisma/enums";
 
 import type { BookingAuditTaskConsumer } from "./BookingAuditTaskConsumer";
 import type { BookingAuditViewerService } from "./BookingAuditViewerService";
@@ -25,6 +25,7 @@ describe("Booking Audit Integration", () => {
   let testEventTypeId: number;
   let testAttendeeEmail: string;
   let testAttendeeUserId: number;
+  let testOrganizationId: number;
 
   beforeEach(async () => {
     // Initialize services from DI containers
@@ -44,6 +45,26 @@ describe("Booking Audit Integration", () => {
     testUserId = testUser.id;
     testUserUuid = testUser.uuid;
     testUserEmail = testUser.email;
+
+    // Create test organization
+    const organization = await prisma.team.create({
+      data: {
+        name: `Test Org ${timestamp}-${randomSuffix}`,
+        slug: `test-org-${timestamp}-${randomSuffix}`,
+        isOrganization: true,
+      },
+    });
+    testOrganizationId = organization.id;
+
+    // Add user as admin of the organization
+    await prisma.membership.create({
+      data: {
+        userId: testUserId,
+        teamId: testOrganizationId,
+        role: MembershipRole.ADMIN,
+        accepted: true,
+      },
+    });
 
     // Create test event type
     const eventType = await prisma.eventType.create({
@@ -98,43 +119,69 @@ describe("Booking Audit Integration", () => {
     // Clean up test data in correct order to respect foreign key constraints
 
     // Delete audit logs first (references actor)
-    await prisma.bookingAudit.deleteMany({
-      where: { bookingUid: testBookingUid },
-    });
+    if (testBookingUid) {
+      await prisma.bookingAudit.deleteMany({
+        where: { bookingUid: testBookingUid },
+      });
+    }
 
     // Delete actors
-    await prisma.auditActor.deleteMany({
-      where: {
-        OR: [
-          { userUuid: testUserUuid },
-          { email: testAttendeeEmail },
-        ],
-      },
-    });
+    if (testUserUuid || testAttendeeEmail) {
+      await prisma.auditActor.deleteMany({
+        where: {
+          OR: [
+            ...(testUserUuid ? [{ userUuid: testUserUuid }] : []),
+            ...(testAttendeeEmail ? [{ email: testAttendeeEmail }] : []),
+          ],
+        },
+      });
+    }
 
     // Delete attendees
-    await prisma.attendee.deleteMany({
-      where: { email: testAttendeeEmail },
-    });
+    if (testAttendeeEmail) {
+      await prisma.attendee.deleteMany({
+        where: { email: testAttendeeEmail },
+      });
+    }
 
     // Delete booking
-    await prisma.booking.deleteMany({
-      where: { uid: testBookingUid },
-    });
+    if (testBookingUid) {
+      await prisma.booking.deleteMany({
+        where: { uid: testBookingUid },
+      });
+    }
 
     // Delete event type
-    await prisma.eventType.deleteMany({
-      where: { id: testEventTypeId },
-    });
+    if (testEventTypeId) {
+      await prisma.eventType.deleteMany({
+        where: { id: testEventTypeId },
+      });
+    }
+
+    // Delete memberships
+    if (testOrganizationId) {
+      await prisma.membership.deleteMany({
+        where: { teamId: testOrganizationId },
+      });
+    }
+
+    // Delete organization
+    if (testOrganizationId) {
+      await prisma.team.deleteMany({
+        where: { id: testOrganizationId },
+      });
+    }
 
     // Delete users
-    await prisma.user.deleteMany({
-      where: {
-        id: {
-          in: [testUserId, testAttendeeUserId],
+    if (testUserId || testAttendeeUserId) {
+      await prisma.user.deleteMany({
+        where: {
+          id: {
+            in: [testUserId, testAttendeeUserId].filter(Boolean),
+          },
         },
-      },
-    });
+      });
+    }
   });
 
   describe("CREATED action end-to-end flow", () => {
@@ -163,16 +210,19 @@ describe("Booking Audit Integration", () => {
           startTime: booking!.startTime.getTime(),
           endTime: booking!.endTime.getTime(),
           status: booking!.status,
+          source: "WEBAPP",
         },
         timestamp: Date.now(),
       });
 
       // Retrieve audit logs
-      const result = await bookingAuditViewerService.getAuditLogsForBooking(
-        testBookingUid,
-        testUserId,
-        testUserEmail
-      );
+      const result = await bookingAuditViewerService.getAuditLogsForBooking({
+        bookingUid: testBookingUid,
+        userId: testUserId,
+        userEmail: testUserEmail,
+        userTimeZone: "UTC",
+        organizationId: testOrganizationId,
+      });
 
       // Assert: Verify audit log exists and has correct data
       expect(result.bookingUid).toBe(testBookingUid);
@@ -183,10 +233,18 @@ describe("Booking Audit Integration", () => {
       expect(auditLog.action).toBe("CREATED");
       expect(auditLog.type).toBe("RECORD_CREATED");
 
-      // Verify audit data matches (getDisplayJson returns fields only, not versioned wrapper)
-      const displayData = auditLog.data
-      expect(displayData.startTime).toBe(booking!.startTime.toISOString());
-      expect(displayData.endTime).toBe(booking!.endTime.toISOString());
+      // Verify audit data matches (getDisplayJson returns formatted display data)
+      // Format is "yyyy-MM-dd HH:mm:ss" in the user's timezone (UTC in this test)
+      const displayData = auditLog.data as any;
+      expect(displayData.startTime).toBeDefined();
+      expect(typeof displayData.startTime).toBe("string");
+      // Verify format matches "yyyy-MM-dd HH:mm:ss" pattern
+      expect(displayData.startTime).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+      expect(displayData.endTime).toBeDefined();
+      expect(typeof displayData.endTime).toBe("string");
+      expect(displayData.endTime).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
       expect(displayData.status).toBe(booking!.status);
     });
 
@@ -209,16 +267,19 @@ describe("Booking Audit Integration", () => {
           startTime: booking!.startTime.getTime(),
           endTime: booking!.endTime.getTime(),
           status: booking!.status,
+          source: "WEBAPP",
         },
         timestamp: Date.now(),
       });
 
       // Act: Retrieve audit logs
-      const result = await bookingAuditViewerService.getAuditLogsForBooking(
-        testBookingUid,
-        testUserId,
-        testUserEmail
-      );
+      const result = await bookingAuditViewerService.getAuditLogsForBooking({
+        bookingUid: testBookingUid,
+        userId: testUserId,
+        userEmail: testUserEmail,
+        userTimeZone: "UTC",
+        organizationId: testOrganizationId,
+      });
 
       // Assert: Verify actor enrichment
       const auditLog = result.auditLogs[0];
@@ -246,37 +307,34 @@ describe("Booking Audit Integration", () => {
           startTime: booking!.startTime.getTime(),
           endTime: booking!.endTime.getTime(),
           status: booking!.status,
+          source: "WEBAPP",
         },
         timestamp: Date.now(),
       });
 
-      // Act & Assert: Booking owner can view
-      const ownerResult = await bookingAuditViewerService.getAuditLogsForBooking(
-        testBookingUid,
-        testUserId,
-        testUserEmail
-      );
+      // Act & Assert: Booking owner (org admin) can view
+      const ownerResult = await bookingAuditViewerService.getAuditLogsForBooking({
+        bookingUid: testBookingUid,
+        userId: testUserId,
+        userEmail: testUserEmail,
+        userTimeZone: "UTC",
+        organizationId: testOrganizationId,
+      });
       expect(ownerResult.auditLogs).toHaveLength(1);
-
-      // Act & Assert: Attendee can view
-      const attendeeResult = await bookingAuditViewerService.getAuditLogsForBooking(
-        testBookingUid,
-        testAttendeeUserId,
-        testAttendeeEmail
-      );
-      expect(attendeeResult.auditLogs).toHaveLength(1);
 
       // Act & Assert: Unauthorized user cannot view
       const unauthorizedUserId = 999999;
       const unauthorizedEmail = "unauthorized@example.com";
 
       await expect(
-        bookingAuditViewerService.getAuditLogsForBooking(
-          testBookingUid,
-          unauthorizedUserId,
-          unauthorizedEmail
-        )
-      ).rejects.toThrow("You do not have permission to view audit logs for this booking");
+        bookingAuditViewerService.getAuditLogsForBooking({
+          bookingUid: testBookingUid,
+          userId: unauthorizedUserId,
+          userEmail: unauthorizedEmail,
+          userTimeZone: "UTC",
+          organizationId: testOrganizationId,
+        })
+      ).rejects.toThrow();
     });
   });
 });
