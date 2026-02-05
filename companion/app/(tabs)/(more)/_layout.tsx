@@ -12,13 +12,6 @@ export default function MoreLayout() {
           headerShown: Platform.OS === "ios",
         }}
       />
-      <Stack.Screen
-        name="out-of-office"
-        options={{
-          headerShown: Platform.OS === "ios",
-          title: "Out of Office",
-        }}
-      />
     </Stack>
   );
 }
